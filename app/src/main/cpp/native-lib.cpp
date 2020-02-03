@@ -94,7 +94,7 @@ GLuint loadShader(GLenum shaderType, const char* pSource) {
             GLint infoLen = 0;
             glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
             if (infoLen) {
-                char* buf = (char*) malloc(infoLen);
+                char* buf = (char*) malloc(size_t(infoLen));
                 if (buf) {
                     glGetShaderInfoLog(shader, infoLen, NULL, buf);
                     free(buf);
@@ -130,7 +130,7 @@ GLuint createProgram(const char* pVertexSource, const char* pFragmentSource) {
             GLint bufLength = 0;
             glGetProgramiv(program, GL_INFO_LOG_LENGTH, &bufLength);
             if (bufLength) {
-                char* buf = (char*) malloc(bufLength);
+                char* buf = (char*) malloc((size_t)bufLength);
                 if (buf) {
                     glGetProgramInfoLog(program, bufLength, NULL, buf);
                     free(buf);

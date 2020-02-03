@@ -5,7 +5,7 @@ import android.opengl.GLSurfaceView;
 
 class MyGLSurfaceView extends GLSurfaceView {
 
-    private final MyGLRenderer renderer;
+    MyGLRenderer renderer;
 
     public MyGLSurfaceView(Context context){
         super(context);
