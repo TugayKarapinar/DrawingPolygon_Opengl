@@ -1,87 +1,24 @@
 #include <jni.h>
 #include <string>
-#include <android/log.h>
 #include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <cstdlib>
+#include <chrono>
 
-#include <GLES3/gl3.h>
-#include <GLES3/gl3ext.h>
-
-using namespace std;
-static char gVertexShader[] =
+char gVertexShader[] =
         "attribute vec4 vPosition;\n"
         "void main() {\n"
         "  gl_Position = vPosition;\n"
         "}\n";
-static char gFragmentShader[] = "precision mediump float;\n"
-                         "void main()\n"
-                          "{\n"
-                          "  gl_FragColor = vec4(0.000000, 0.000000, 0.000000, 1.0);\n"
-                          "}\n";
 
-void createFragmentShader(){
-    static float red=0.0f;
-    static bool redIncrease = true;
-    if(redIncrease){
-        red += 0.001f;
-    }
-    else{
-        red -= 0.001f;
-    }
-    if (red > 1.0f) {
-        red = 1.0f;
-        redIncrease = false;
-    }
-    else if( red<0.0f ){
-        red = 0.0f;
-        redIncrease = true;
-    }
+char gFragmentShader[] =
+        "precision mediump float;\n"
+        "uniform vec4 color;"
+        "void main()\n"
+        "{\n"
+        "  gl_FragColor = color;\n"
+        "}\n";
 
-    static float green=0.0f;
-    static bool greenIncrease = true;
-    if(greenIncrease){
-        green += 0.002f;
-    }
-    else{
-        green -= 0.002f;
-    }
-    if (green > 1.0f) {
-        green = 1.0f;
-        greenIncrease = false;
-    }
-    else if( green<0.0f ){
-        green = 0.0f;
-        greenIncrease = true;
-    }
-
-    static float blue=0.0f;
-    static bool blueIncrease = true;
-    if(blueIncrease){
-        blue += 0.003f;
-    }
-    else{
-        blue -= 0.003f;
-    }
-    if (blue > 1.0f) {
-        blue = 1.0f;
-        blueIncrease = false;
-    }
-    else if( blue<0.0f ){
-        blue = 0.0f;
-        blueIncrease = true;
-    }
-    string NewFragmentShader = (string)"precision mediump float;\n" +
-                               (string)"void main()\n" +
-                               (string)"{\n" +
-                               (string)"  gl_FragColor = vec4("+to_string(red)+", "+to_string(green)+", "+to_string(blue)+", 1.0);\n" +
-                               (string)"}\n";
-
-    strcpy(gFragmentShader, NewFragmentShader.c_str());
-}
+auto t_start = std::chrono::high_resolution_clock::now();
+float rgb[] = {0.0f,0.0f,0.0f};
 
 GLuint loadShader(GLenum shaderType, const char* pSource) {
     GLuint shader = glCreateShader(shaderType);
@@ -101,6 +38,7 @@ GLuint loadShader(GLenum shaderType, const char* pSource) {
                 }
                 glDeleteShader(shader);
                 shader = 0;
+
             }
         }
     }
@@ -108,7 +46,6 @@ GLuint loadShader(GLenum shaderType, const char* pSource) {
 }
 
 GLuint createProgram(const char* pVertexSource, const char* pFragmentSource) {
-    createFragmentShader();
     GLuint vertexShader = loadShader(GL_VERTEX_SHADER, pVertexSource);
     if (!vertexShader) {
         return 0;
@@ -144,19 +81,28 @@ GLuint createProgram(const char* pVertexSource, const char* pFragmentSource) {
 }
 
 GLuint gProgram;
-GLuint gvPositionHandle;
+GLint gvPositionHandle;
+GLint color;
 bool setupGraphics(int w, int h) {
-    createFragmentShader();
     gProgram = createProgram(gVertexShader, gFragmentShader);
     if (!gProgram) {
         return false;
     }
+    color = glGetUniformLocation(gProgram, "color");
     gvPositionHandle = glGetAttribLocation(gProgram, "vPosition");
 
     glViewport(0, 0, w, h);
     return true;
 }
 
+void ChangeRGB(){
+    auto t_now = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
+    rgb[0] = (sin(time * 1.0f) + 1.0f) /  2.0f;
+    rgb[1] = (sin(time * 2.0f) + 1.0f) /  2.0f;
+    rgb[2] = (sin(time * 3.0f) + 1.0f) /  2.0f;
+    glUniform4f(color, rgb[0], rgb[1], rgb[2], 1.0f);
+}
 
 extern "C" JNIEXPORT void JNICALL Java_com_example_cpptask_MyGLRenderer_init(JNIEnv * env, jclass obj,  jint width, jint height)
 {
@@ -176,9 +122,11 @@ extern "C" JNIEXPORT void JNICALL Java_com_example_cpptask_MyGLRenderer_DrawPoly
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     glUseProgram(gProgram);
-    glVertexAttribPointer(gvPositionHandle, 2, GL_FLOAT, GL_FALSE, 0,gTriangleVertices);
-    glEnableVertexAttribArray(gvPositionHandle);
-    glDrawArrays(GL_TRIANGLES, 0, length/2);
 
-    gProgram = createProgram(gVertexShader, gFragmentShader);
+    //Changing the color of the drawn polygon depending on time.
+    ChangeRGB();
+
+    glVertexAttribPointer((GLuint)gvPositionHandle, 2, GL_FLOAT, GL_FALSE, 0,gTriangleVertices);
+    glEnableVertexAttribArray((GLuint)gvPositionHandle);
+    glDrawArrays(GL_TRIANGLES, 0, length/2);
 }
